@@ -49,3 +49,11 @@ docker-compose up -d
 3.  Clique em "Gerar Números".
 4.  Os números sorteados aparecerão na tela e serão adicionados ao histórico à esquerda.
 5.  Para copiar o histórico, clique no botão "Copiar Histórico".
+
+## Como Parar a Aplicação
+
+Para parar e remover os containers da aplicação, execute o seguinte comando na pasta do projeto:
+
+```bash
+docker-compose down
+```
