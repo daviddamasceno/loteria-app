@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sorteador de Loteria AI</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .ball-enter-active, .ball-leave-active { transition: all 0.5s ease; }
+        .ball-enter-from, .ball-leave-to { opacity: 0; transform: translateY(30px); }
+    </style>
+</head>
+<body class="bg-slate-900 text-white min-h-screen flex items-center justify-center p-4">
+
+    <div id="app" class="w-full max-w-lg">
+        <div class="bg-slate-800 rounded-2xl shadow-2xl border border-slate-700 p-8">
+            <h1 class="text-3xl font-extrabold text-center mb-2 text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-blue-500">
+                Sorteador Lotérico
+            </h1>
+            <p class="text-slate-400 text-center mb-8 text-sm">Gere seus números da sorte</p>
+
+            <div class="space-y-6">
+                <div>
+                    <label class="block text-sm font-medium text-slate-300 mb-2">Range Máximo (ex: 60)</label>
+                    <input type="number" v-model="rangeMax" class="w-full bg-slate-900 border border-slate-600 rounded-lg p-3 text-white focus:ring-2 focus:ring-green-500 focus:outline-none transition" placeholder="60">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-slate-300 mb-2">Quantos números sortear? (ex: 6)</label>
+                    <input type="number" v-model="quantidade" class="w-full bg-slate-900 border border-slate-600 rounded-lg p-3 text-white focus:ring-2 focus:ring-green-500 focus:outline-none transition" placeholder="6">
+                </div>
+
+                <button @click="sortear" :disabled="loading" class="w-full bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-400 hover:to-emerald-500 text-white font-bold py-4 rounded-xl shadow-lg transform transition active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed">
+                    <span v-if="loading">Sorteando...</span>
+                    <span v-else>Gerar Números</span>
+                </button>
+            </div>
+
+            <div v-if="erro" class="mt-4 p-3 bg-red-500/20 text-red-300 rounded-lg text-sm text-center border border-red-500/30">
+                [[ erro ]]
+            </div>
+
+            <div class="mt-8">
+                <div class="flex flex-wrap justify-center gap-3">
+                    <transition-group name="ball">
+                        <div v-for="(num, index) in numeros" :key="num" 
+                             class="w-14 h-14 flex items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 shadow-lg border-2 border-indigo-400 font-bold text-xl relative group cursor-default hover:-translate-y-1 transition duration-300">
+                            [[ num ]]
+                            <div class="absolute top-1 left-2 w-3 h-3 bg-white opacity-20 rounded-full blur-[1px]"></div>
+                        </div>
+                    </transition-group>
+                </div>
+            </div>
+        </div>
+        <p class="text-center text-slate-600 text-xs mt-6">Boa sorte!</p>
+    </div>
+
+    <script>
+        const { createApp } = Vue;
+        createApp({
+            // CONFIGURAÇÃO CRÍTICA: Mudamos os delimitadores para evitar conflito com Jinja2
+            delimiters: ['[[', ']]'],
+            data() {
+                return {
+                    rangeMax: 60,
+                    quantidade: 6,
+                    numeros: [],
+                    loading: false,
+                    erro: ''
+                }
+            },
+            methods: {
+                async sortear() {
+                    this.loading = true;
+                    this.erro = '';
+                    this.numeros = [];
+                    try {
+                        const response = await fetch('/api/sortear', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                range_max: parseInt(this.rangeMax),
+                                quantidade: parseInt(this.quantidade)
+                            })
+                        });
+                        const data = await response.json();
+                        console.log("Dados recebidos:", data);
+                        if (!response.ok) throw new Error(data.detail || 'Erro ao sortear');
+                        
+                        // Pequeno delay visual
+                        setTimeout(() => {
+                            this.numeros = data.numeros;
+                            this.loading = false;
+                        }, 300);
+                    } catch (e) {
+                        this.erro = e.message;
+                        this.loading = false;
+                    }
+                }
+            }
+        }).mount('#app');
+    </script>
+</body>
+</html>
