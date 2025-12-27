@@ -23,9 +23,8 @@ Siga os passos abaixo para ter a aplicação rodando em seu ambiente local.
 **1. Clone o repositório:**
 
 ```bash
-git clone <URL_DO_SEU_REPOSITORIO>
+git clone https://github.com/daviddamasceno/loteria-app.git
 ```
-*(Substitua `<URL_DO_SEU_REPOSITORIO>` pela URL do seu projeto no Git)*
 
 **2. Acesse a pasta do projeto:**
 
@@ -41,11 +40,11 @@ Este comando irá construir a imagem Docker e iniciar o container em segundo pla
 docker-compose up -d
 ```
 
-**Pronto!** A aplicação estará disponível no seu navegador em: `http://localhost:80`
+**Pronto!** A aplicação estará disponível no seu navegador em: `http://localhost:8080`
 
 ## Como usar
 
-1.  Acesse `http://localhost:80` no seu navegador.
+1.  Acesse `http://localhost:8080` no seu navegador.
 2.  Preencha os campos "Range Máximo" e "Quantos números sortear?".
 3.  Clique em "Gerar Números".
 4.  Os números sorteados aparecerão na tela e serão adicionados ao histórico à esquerda.
