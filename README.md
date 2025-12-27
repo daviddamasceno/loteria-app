@@ -12,6 +12,9 @@ A aplicação possui uma interface web amigável onde você pode:
 *   Visualizar um **histórico** dos jogos gerados.
 *   **Copiar** todo o histórico para colar em uma planilha ou onde preferir.
 
+<img width="1008" height="606" alt="image" src="https://github.com/user-attachments/assets/5a245a1f-fed0-4c74-ac4d-70824a537d60" />
+
+
 ## Pré-requisitos
 
 Para executar este projeto, você precisa ter o [Docker](https://www.docker.com/get-started) e o [Docker Compose](https://docs.docker.com/compose/install/) instalados em sua máquina.
