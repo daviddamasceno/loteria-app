@@ -11,7 +11,15 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v4
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0 # Necessário para o Gitleaks analisar todo o histórico
+
+    - name: Run Gitleaks (Secrets Scanner)
+      uses: gitleaks/gitleaks-action@v2
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Set up Python 3.9
       uses: actions/setup-python@v5
@@ -23,13 +31,39 @@ jobs:
         python -m pip install --upgrade pip
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 
+    - name: Run OWASP Dependency-Check
+      uses: dependency-check/Dependency-Check_Action@main
+      with:
+        project: 'loteria-app'
+        path: '.'
+        format: 'HTML'
+
+    - name: Upload OWASP Dependency-Check Report
+      uses: actions/upload-artifact@v4
+      with:
+        name: dependency-check-report
+        path: ${{github.workspace}}/reports
+
+    - name: Build Docker Image
+      run: |
+        docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/loteria-app:latest .
+
+    - name: Run Trivy Vulnerability Scanner
+      uses: aquasecurity/trivy-action@master
+      with:
+        image-ref: '${{ secrets.DOCKERHUB_USERNAME }}/loteria-app:latest'
+        format: 'table'
+        exit-code: '1' # Irá falhar o pipeline se encontrar vulnerabilidades HIGH ou CRITICAL
+        ignore-unfixed: true
+        vuln-type: 'os,library'
+        severity: 'CRITICAL,HIGH'
+
     - name: Login to Docker Hub
       uses: docker/login-action@v3
       with:
         username: ${{ secrets.DOCKERHUB_USERNAME }}
         password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-    - name: Build and Push Docker Image
+    - name: Push Docker Image
       run: |
-        docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/loteria-app:latest .
         docker push ${{ secrets.DOCKERHUB_USERNAME }}/loteria-app:latest
