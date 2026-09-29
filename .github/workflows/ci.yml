@@ -46,23 +46,11 @@ jobs:
         run: |
           bandit -r app/
 
-      - name: Run Tests & Generate Coverage
+      - name: Run Tests & Check Coverage
         run: |
-          # Executa os testes e gera o arquivo coverage.xml que o SonarQube precisa
-          # O --cov=app foca a análise apenas na pasta de código
-          pytest --cov=app --cov-report=xml
-
-      - name: SonarQube Scan
-        uses: sonarsource/sonarqube-scan-action@master
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
-        with:
-          args: >
-            -Dsonar.projectKey=loteria-app
-            -Dsonar.python.coverage.reportPaths=coverage.xml
-            -Dsonar.sources=app/
-            -Dsonar.exclusions=**/tests/**
+          # Executa os testes e quebra a Action se a cobertura for menor que 80%
+          # Exibe as linhas não cobertas no log (term-missing)
+          pytest --cov=app --cov-fail-under=80 --cov-report=term-missing
 
       - name: Run OWASP Dependency-Check
         uses: dependency-check/Dependency-Check_Action@main
