@@ -6,64 +6,103 @@ on:
   pull_request:
     branches: [ "main", "master" ]
 
+env:
+  IMAGE_NAME: loteria-app
+  IMAGE_TAG: ${{ github.sha }}
+
 jobs:
-  build:
+  pre_build_checks:
+    name: Code Quality & Security (Source)
     runs-on: ubuntu-latest
-
     steps:
-    - name: Checkout Repository
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: 0 # Necessário para o Gitleaks analisar todo o histórico
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-    - name: Run Gitleaks (Secrets Scanner)
-      uses: gitleaks/gitleaks-action@v2
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Run Gitleaks (Secrets Scanner)
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-    - name: Set up Python 3.9
-      uses: actions/setup-python@v5
-      with:
-        python-version: "3.9"
+      - name: Set up Python 3.9
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.9"
 
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+          pip install flake8 bandit
 
-    - name: Run OWASP Dependency-Check
-      uses: dependency-check/Dependency-Check_Action@main
-      with:
-        project: 'loteria-app'
-        path: '.'
-        format: 'HTML'
+      - name: Code Linting (flake8)
+        run: |
+          # Checa falhas de sintaxe e erros graves
+          flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+          # Alertas menores (não quebra a pipeline, exit-zero)
+          flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
 
-    - name: Upload OWASP Dependency-Check Report
-      uses: actions/upload-artifact@v4
-      with:
-        name: dependency-check-report
-        path: ${{github.workspace}}/reports
+      - name: SAST with Bandit
+        run: |
+          # Analisa falhas de segurança estáticas no código Python
+          bandit -r app/
 
-    - name: Build Docker Image
-      run: |
-        docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/loteria-app:latest .
+      - name: Run OWASP Dependency-Check
+        uses: dependency-check/Dependency-Check_Action@main
+        with:
+          project: 'loteria-app'
+          path: '.'
+          format: 'HTML'
 
-    - name: Run Trivy Vulnerability Scanner
-      uses: aquasecurity/trivy-action@master
-      with:
-        image-ref: '${{ secrets.DOCKERHUB_USERNAME }}/loteria-app:latest'
-        format: 'table'
-        exit-code: '1' # Irá falhar o pipeline se encontrar vulnerabilidades HIGH ou CRITICAL
-        ignore-unfixed: true
-        vuln-type: 'os,library'
-        severity: 'CRITICAL,HIGH'
+      - name: Upload OWASP Dependency-Check Report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: dependency-check-report
+          path: ${{github.workspace}}/reports
 
-    - name: Login to Docker Hub
-      uses: docker/login-action@v3
-      with:
-        username: ${{ secrets.DOCKERHUB_USERNAME }}
-        password: ${{ secrets.DOCKERHUB_TOKEN }}
+  build_and_push:
+    name: Build, Scan & Push Image
+    needs: pre_build_checks
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
 
-    - name: Push Docker Image
-      run: |
-        docker push ${{ secrets.DOCKERHUB_USERNAME }}/loteria-app:latest
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Check if Docker Tag Exists
+        id: check_tag
+        run: |
+          # Verifica se a tag baseada no commit (github.sha) já existe no registry remoto
+          if docker manifest inspect ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }} > /dev/null 2>&1; then
+            echo "Error: Tag ${{ env.IMAGE_TAG }} already exists on Docker Hub. Aborting to prevent overwrite."
+            exit 1
+          else
+            echo "Tag does not exist. Proceeding with build."
+          fi
+
+      - name: Build Docker Image
+        run: |
+          docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }} -t ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:latest .
+
+      - name: Run Trivy Vulnerability Scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: '${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}'
+          format: 'table'
+          exit-code: '1'
+          ignore-unfixed: true
+          vuln-type: 'os,library'
+          severity: 'CRITICAL,HIGH'
+
+      - name: Push Docker Image
+        if: success()
+        run: |
+          docker push ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
+          docker push ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:latest
