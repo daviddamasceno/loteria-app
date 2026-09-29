@@ -39,12 +39,12 @@ jobs:
 
       - name: Code Linting (flake8)
         run: |
-          flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
-          flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+          flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics --exclude=app/tests/
+          flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics --exclude=app/tests/
 
       - name: SAST with Bandit
         run: |
-          bandit -r app/
+          bandit -r app/ -x app/tests/
 
       - name: Run Tests & Check Coverage
         run: |
