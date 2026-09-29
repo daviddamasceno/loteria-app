@@ -1,4 +1,4 @@
-import random
+import secrets
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse
@@ -22,7 +22,7 @@ async def sortear(dados: SorteioRequest):
     if dados.quantidade <= 0 or dados.range_max <= 0:
         raise HTTPException(status_code=400, detail="Os valores devem ser maiores que zero.")
 
-    numeros = random.sample(range(1, dados.range_max + 1), dados.quantidade)
+    numeros = secrets.SystemRandom().sample(range(1, dados.range_max + 1), dados.quantidade)
     numeros.sort()
     print(f"Números sorteados: {numeros}")
     
