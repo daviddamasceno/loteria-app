@@ -112,7 +112,7 @@ jobs:
         with:
           image-ref: '${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}'
           format: 'template'
-          template: 'trivy.tpl'
+          template: '@trivy.tpl'
           output: 'trivy-report.html'
           exit-code: '1'
           ignore-unfixed: true
