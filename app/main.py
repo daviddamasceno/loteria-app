@@ -17,10 +17,10 @@ async def read_root(request: Request):
 
 @app.post("/api/sortear")
 async def sortear(dados: SorteioRequest):
-    if dados.quantidade > dados.range_max:
-        raise HTTPException(status_code=400, detail="A quantidade não pode ser maior que o range.")
     if dados.quantidade <= 0 or dados.range_max <= 0:
         raise HTTPException(status_code=400, detail="Os valores devem ser maiores que zero.")
+    if dados.quantidade > dados.range_max:
+        raise HTTPException(status_code=400, detail="A quantidade não pode ser maior que o range.")
 
     numeros = secrets.SystemRandom().sample(range(1, dados.range_max + 1), dados.quantidade)
     numeros.sort()
