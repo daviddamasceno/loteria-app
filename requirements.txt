@@ -1,3 +1,9 @@
 fastapi
 uvicorn
 jinja2
+
+# Correções de Segurança forçadas pelo Trivy/pip-audit
+anyio>=4.14.2
+jaraco.context>=6.1.0
+starlette>=1.1.0
+wheel>=0.46.2
